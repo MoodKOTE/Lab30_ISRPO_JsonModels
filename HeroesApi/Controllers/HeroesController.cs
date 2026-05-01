@@ -10,18 +10,17 @@ namespace HeroesApi.Controllers;
 public class HeroesController : ControllerBase
 {
     [HttpGet]
-    public ActionResult<List<Hero>> GetAll()
+    public ActionResult<List<Hero>> GetAll([FromQuery] string? universe = null)
     {
-        return Ok(HeroesStore.Heroes);
-    }
-
-    [HttpGet("{id}")]
-    public ActionResult<Hero> GetById(int id)
-    {
-        var hero = HeroesStore.Heroes.FirstOrDefault(h => h.Id == id);
-        if (hero is null)
-            return NotFound(new { message = $"Герой с id={id} не найден" });
-        return Ok(hero);
+        var heroes = HeroesStore.Heroes.AsEnumerable();
+        if (!string.IsNullOrEmpty(universe))
+        {
+            if (Enum.TryParse<Universe>(universe, true, out var universeEnum))
+                heroes = heroes.Where(h => h.Universe == universeEnum);
+            else
+                return BadRequest(new { message = "Некорректное значение universe. Используйте Marvel или DC." });
+        }
+        return Ok(heroes);
     }
 
     [HttpGet("demo")]
@@ -82,5 +81,18 @@ public class HeroesController : ControllerBase
             deserializedObject = deserialized,
             internalNotesAfterDeserialize = deserialized?.InternalNotes ?? "null - поле было проигнорировано"
         });
+    }
+
+    [HttpGet("search")]
+    public ActionResult<List<Hero>> Search([FromQuery] string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return BadRequest(new { message = "Параметр name не может быть пустым" });
+
+        var result = HeroesStore.Heroes
+            .Where(h => h.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        return Ok(result);
     }
 }
