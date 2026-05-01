@@ -50,4 +50,37 @@ public class HeroesController : ControllerBase
             note = "Сравните имена полей и значение universe в двух вариантах"
         });
     }
+
+    [HttpGet("serialize")]
+    public ActionResult GetSerialize()
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+        };
+
+        var hero = new Hero
+        {
+            Id = 99,
+            Name = "Тестовый герой",
+            RealName = "Тест Тестович",
+            Universe = Universe.Marvel,
+            PowerLevel = 100,
+            Powers = new List<string> { "тестирование", "отладка" },
+            Weapon = new Weapon { Name = "Клавиатура", IsRanged = false },
+            InternalNotes = "Это поле не должно попасть в JSON"
+        };
+
+        string serialized = JsonSerializer.Serialize(hero, options);
+        Hero? deserialized = JsonSerializer.Deserialize<Hero>(serialized, options);
+
+        return Ok(new
+        {
+            serializedJson = serialized,
+            deserializedObject = deserialized,
+            internalNotesAfterDeserialize = deserialized?.InternalNotes ?? "null - поле было проигнорировано"
+        });
+    }
 }
